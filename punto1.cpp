@@ -38,10 +38,20 @@ int main(int argc, char* argv[]) {
   // PUNTO 2 'Introduce a noise signal into the loaded image by adding random fluctuations of color
   //ranging between [−50, 50] to each pixel. Export the resulting image in .png and upload it.'
 
-  MatrixXd dark_image(height, width);
+  Matrix<unsigned char, Dynamic, Dynamic, RowMajor> dark_image(height, width);
+  
   for (int i=0; i < height; ++i) {
     for (int j = 0; j < width; ++j) {
-      dark_image(i, j) = std::max(static_cast<double>(image_data[i * width + j] + 50*Eigen::internal::random<double>(-1.0, 1.0)) , 0.0);
+
+        double noise = 50.0 * Eigen::internal::random<double>(-1.0, 1.0);
+        double val = static_cast<double>(image_data[i * width + j]) + noise;
+
+        // Limita il valore nell'intervallo valido [0, 255]
+        val = std::clamp(val, 0.0, 255.0);
+
+        dark_image(i, j) = static_cast<unsigned char>(val);
+       
+
     }
   }
 
