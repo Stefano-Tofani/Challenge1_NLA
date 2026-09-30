@@ -11,6 +11,11 @@
 using namespace Eigen;
 
 int main(int argc, char* argv[]) {
+
+  //PUNTO 1 'Load the image as an Eigen matrix with size m × n. Each entry in the matrix corresponds
+  //to a pixel on the screen and takes a value somewhere between 0 (black) and 255 (white).
+  //Report the size of the matrix.'
+
   if (argc < 2) {
     std::cerr << "Usage: " << argv[0] << " <image_path>" << std::endl;
     return 1;
@@ -28,5 +33,27 @@ int main(int argc, char* argv[]) {
   }
 
   std::cout << "Image loaded: " << width << "x" << height << " with " << channels << " channels." << std::endl;
-    return 0;
+  
+
+  // PUNTO 2 'Introduce a noise signal into the loaded image by adding random fluctuations of color
+  //ranging between [−50, 50] to each pixel. Export the resulting image in .png and upload it.'
+
+  MatrixXd dark_image(height, width);
+  for (int i=0; i < height; ++i) {
+    for (int j = 0; j < width; ++j) {
+      dark_image(i, j) = std::max(static_cast<double>(image_data[i * width + j] + 50*Eigen::internal::random<double>(-1.0, 1.0)) , 0.0);
+    }
+  }
+
+    // Free memory!!!
+  stbi_image_free(image_data);
+
+  // Save the image using stb_image_write
+  const std::string output_image_path1 = "dark_image.png";
+  if (stbi_write_png(output_image_path1.c_str(), width, height, 1,
+                     dark_image.data(), width) == 0) {
+    std::cerr << "Error: Could not save grayscale image" << std::endl;
+  }
+return 0;
+
 }
