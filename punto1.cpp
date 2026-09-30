@@ -64,6 +64,13 @@ int main(int argc, char* argv[]) {
                      dark_image.data(), width) == 0) {
     std::cerr << "Error: Could not save grayscale image" << std::endl;
   }
+  
+// Mappa i dati della matrice come un vettore colonna di dimensione (height * width)
+Eigen::Map<const Eigen::Matrix<unsigned char, Dynamic, 1>> w_vec(dark_image.data(), height * width);
+
+// Calcola la norma convertendo in double
+std::cout << "Norma del vettore w: \n" << w_vec.cast<double>().norm() << std::endl;
+
 return 0;
 
 }
