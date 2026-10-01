@@ -39,16 +39,41 @@ int main(int argc, char* argv[]) {
   //ranging between [−50, 50] to each pixel. Export the resulting image in .png and upload it.'
 
   Matrix<unsigned char, Dynamic, Dynamic, RowMajor> dark_image(height, width);
-  
+  // matrice originale reshape come vettore
   for (int i=0; i < height; ++i) {
     for (int j = 0; j < width; ++j) {
 
-        double noise = 50.0 * Eigen::internal::random<double>(-1.0, 1.0);
-        double val = static_cast<double>(image_data[i * width + j]) + noise;
+        //double noise = 50.0 * Eigen::internal::random<double>(-1.0, 1.0);
+        double val = static_cast<double>(image_data[i * width + j]); //+ noise;
 
         // Limita il valore nell'intervallo valido [0, 255]
+        //val = std::clamp(val, 0.0, 255.0);
+
+        dark_image(i, j) = static_cast<unsigned char>(val);
+       
+
+    }
+  }
+
+  // Mappa i dati della matrice come un vettore colonna di dimensione (height * width)
+Eigen::Map<const Eigen::Matrix<unsigned char, Dynamic, 1>> w_original(dark_image.data(), height * width);
+
+// Calcola la norma convertendo in double
+std::cout << "Norma del vettore senza rumore v: \n" << w_original.cast<double>().norm() << std::endl;
+
+// Preapariamo la vera matrice dark_image con rumore
+ for (int i=0; i < height; ++i) {
+    for (int j = 0; j < width; ++j) {
+
+        double noise = 50.0 * Eigen::internal::random<double>(-1.0, 1.0);
+        
+        // 1. Estrapola il valore originale del pixel in double e aggiungi il rumore
+        double val = static_cast<double>(dark_image(i, j)) + noise;
+
+        // 2. Applica il clamp lavorando sui double (evita errori di tipi misti)
         val = std::clamp(val, 0.0, 255.0);
 
+        // 3. Salva nella matrice solo dopo aver sistemato il range
         dark_image(i, j) = static_cast<unsigned char>(val);
        
 
