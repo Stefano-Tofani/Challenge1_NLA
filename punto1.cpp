@@ -57,7 +57,7 @@ int main(int argc, char* argv[]) {
   }
 
   // Mappa i dati della matrice come un vettore colonna di dimensione (height * width)
-Eigen::Map<const Eigen::Matrix<unsigned char, Dynamic, 1>> w_original(dark_image.data(), height * width);
+Eigen::Map<const Eigen::Matrix<unsigned char, Dynamic, 1>> v_original(dark_image.data(), height * width);
 
 //Punto4
 // 1. Definisci il numero totale di pixel
@@ -113,7 +113,7 @@ A1.setFromTriplets(triplets.begin(), triplets.end());
 
 
 // Calcola la norma convertendo in double
-std::cout << "Norma del vettore senza rumore v: \n" << w_original.cast<double>().norm() << std::endl;
+std::cout << "Norma del vettore senza rumore v: \n" << v_original.cast<double>().norm() << std::endl;
 
 // Adesso puoi stampare il numero di elementi non nulli richiesto dalla consegna
 std::cout << "Elementi non nulli in A1: " << A1.nonZeros() << std::endl;
@@ -169,11 +169,98 @@ Eigen::Matrix<unsigned char, Dynamic, 1> g_char = g_double.cast<unsigned char>()
 const std::string output_image_path2 = "dark_image_first_filter.png";
   if (stbi_write_png(output_image_path2.c_str(), width, height, 1,
                      g_char.data(), width) == 0) {
-    std::cerr << "Error: Could not save grayscale image" << std::endl;
+    std::cerr << "Error: Could not save first filter image" << std::endl;
   }
 
 // Calcola la norma convertendo in double
 std::cout << "Norma del vettore w: \n" << w_vec.cast<double>().norm() << std::endl;
+
+
+// PUNTO 6 Write the convolution operation corresponding to the sharpening kernel Hsh1 as a matrix
+//vector multiplication by a matrix A2 having size mn x mn. Report the number of non-zero
+//entries in A2. Is A2 symmetric?
+
+
+// 2. Inizializza la matrice sparsa di tipo double
+Eigen::SparseMatrix<double> A2(N, N);
+
+// 3. Usa un vettore di Triplet per riempirla velocemente
+std::vector<Eigen::Triplet<double>> A2_triplets;
+// Pre-allochiamo la memoria: al massimo 9 elementi non nulli per ogni riga
+A2_triplets.reserve(N * 5);
+
+// 4. Doppio ciclo sulle coordinate 2D dell'immagine
+for (int y = 0; y < height; ++y) {
+    for (int x = 0; x < width; ++x) {
+        
+        // Indice 1D della riga della matrice A1
+        int row_idx = y * width + x;
+        
+        // Cicliamo sul kernel 3x3 (offset da -1 a +1 per y e x)
+        for (int ky = -1; ky <= 1; ++ky) {
+            for (int kx = -1; kx <= 1; ++kx) {
+                
+                int neighbor_y = y + ky;
+                int neighbor_x = x + kx;
+                
+                // CONTROLLO DEI BORDI: verifichiamo che il vicino esista
+                if (neighbor_y >= 0 && neighbor_y < height && 
+                    neighbor_x >= 0 && neighbor_x < width) {
+                    
+                    // Indice 1D della colonna (il pixel da cui leggiamo il colore)
+                    int col_idx = neighbor_y * width + neighbor_x;
+                    
+                    // Assegniamo il peso corretto
+                    double weight = 0.0;
+                    if (ky == 0 && kx == 0) {
+                        weight = 9.0; // Centro
+                    } 
+                    if ((ky==1 || ky==-1) && (kx==-1 || kx==1)){
+                        continue; // Obliqui
+                    }
+                    if ((ky==1 && kx==0) || (ky==0 && kx==-1)) {
+                        weight = -1.0;
+                    }
+                    if ((kx==1 && ky==0) || (kx==0 && ky==-1)) {
+                        weight = -3.0;
+                    }
+                    
+                    // Salviamo il valore
+                    A2_triplets.push_back(Eigen::Triplet<double>(row_idx, col_idx, weight));
+                }
+            }
+        }
+    }
+}
+
+
+// 5. Costruisci la matrice sparsa dai Triplet
+A2.setFromTriplets(A2_triplets.begin(), A2_triplets.end());
+
+bool is_symmetric = A2.isApprox(A2.transpose()); // mi dirà se la mia matrice è effettivamente simmetrica
+// Adesso puoi stampare il numero di elementi non nulli richiesto dalla consegna
+std::cout << "Elementi non nulli in A2: " << A2.nonZeros() << std::endl << "La matrice e simmetrica? " << is_symmetric << std::endl;
+
+
+//Punto 7 Apply the previous sharpening filter to the original image by performing the matrix vector
+//multiplication A2v. Export and upload the resulting image.
+
+
+Eigen::VectorXd v_sharp = v_original.cast<double>();
+
+// 3. Esegui la moltiplicazione matrice-vettore: A1 * w
+Eigen::VectorXd g_sharp = A2 * v_sharp;
+
+// 4. Converti il risultato in unsigned char per salvarlo come immagine
+Eigen::Matrix<unsigned char, Dynamic, 1> g_sharp_char = g_sharp.cast<unsigned char>();
+
+// 
+// 5. Salva il risultato come immagine
+const std::string output_image_path3 = "original_image_sharp_filter.png";
+  if (stbi_write_png(output_image_path3.c_str(), width, height, 1,
+                     g_sharp_char.data(), width) == 0) {
+    std::cerr << "Error: Could not save sharpering image" << std::endl;
+  }
 
 return 0;
 
