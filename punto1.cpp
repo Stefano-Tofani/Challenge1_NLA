@@ -3,6 +3,7 @@
 #include <iostream>
 #include <cstdlib>
 #include <vector>
+#include <unsupported/Eigen/SparseExtra>
 
 // from https://github.com/nothings/stb/tree/master
 #define STB_IMAGE_IMPLEMENTATION
@@ -270,6 +271,15 @@ const std::string output_image_path2 = "dark_image_first_filter.png";
 
 // Calcola la norma convertendo in double
 std::cout << "Norma del vettore w: \n" << w_vec.cast<double>().norm() << std::endl;
+
+
+// esporto la matrice A2 e il vettore w_vec in formato .mtx
+
+Eigen::saveMarket(A2, "sharp_matrix.mtx");
+
+// Salva il vettore convertendolo in int, così scriverà i numeri reali (es. "128") 
+// anziché i caratteri ASCII corrispondenti
+Eigen::saveMarketVector(w_vec.cast<int>(), "w_noisy.mtx");
 
 
 
