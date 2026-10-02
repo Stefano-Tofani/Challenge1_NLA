@@ -64,136 +64,18 @@ Eigen::Map<const Eigen::Matrix<unsigned char, Dynamic, 1>> v_original(dark_image
 int N = height * width;
 
 // 2. Inizializza la matrice sparsa di tipo double
-Eigen::SparseMatrix<double> A1(N, N);
-
-// 3. Usa un vettore di Triplet per riempirla velocemente
-std::vector<Eigen::Triplet<double>> triplets;
-// Pre-allochiamo la memoria: al massimo 9 elementi non nulli per ogni riga
-triplets.reserve(N * 9);
-
-// 4. Doppio ciclo sulle coordinate 2D dell'immagine
-for (int y = 0; y < height; ++y) {
-    for (int x = 0; x < width; ++x) {
-        
-        // Indice 1D della riga della matrice A1
-        int row_idx = y * width + x;
-        
-        // Cicliamo sul kernel 3x3 (offset da -1 a +1 per y e x)
-        for (int ky = -1; ky <= 1; ++ky) {
-            for (int kx = -1; kx <= 1; ++kx) {
-                
-                int neighbor_y = y + ky;
-                int neighbor_x = x + kx;
-                
-                // CONTROLLO DEI BORDI: verifichiamo che il vicino esista
-                if (neighbor_y >= 0 && neighbor_y < height && 
-                    neighbor_x >= 0 && neighbor_x < width) {
-                    
-                    // Indice 1D della colonna (il pixel da cui leggiamo il colore)
-                    int col_idx = neighbor_y * width + neighbor_x;
-                    
-                    // Assegniamo il peso corretto
-                    double weight = 0.0;
-                    if (ky == 0 && kx == 0) {
-                        weight = 4.0 / 12.0; // Centro
-                    } else {
-                        weight = 1.0 / 12.0; // Vicini
-                    }
-                    
-                    // Salviamo il valore
-                    triplets.push_back(Eigen::Triplet<double>(row_idx, col_idx, weight));
-                }
-            }
-        }
-    }
-}
-
-// 5. Costruisci la matrice sparsa dai Triplet
-A1.setFromTriplets(triplets.begin(), triplets.end());
-
-
-// Calcola la norma convertendo in double
-std::cout << "Norma del vettore senza rumore v: \n" << v_original.cast<double>().norm() << std::endl;
-
-// Adesso puoi stampare il numero di elementi non nulli richiesto dalla consegna
-std::cout << "Elementi non nulli in A1: " << A1.nonZeros() << std::endl;
-
-
-
-// Preapariamo la vera matrice dark_image con rumore
- for (int i=0; i < height; ++i) {
-    for (int j = 0; j < width; ++j) {
-
-        double noise = 50.0 * Eigen::internal::random<double>(-1.0, 1.0);
-        
-        // 1. Estrapola il valore originale del pixel in double e aggiungi il rumore
-        double val = static_cast<double>(dark_image(i, j)) + noise;
-
-        // 2. Applica il clamp lavorando sui double (evita errori di tipi misti)
-        val = std::clamp(val, 0.0, 255.0);
-
-        // 3. Salva nella matrice solo dopo aver sistemato il range
-        dark_image(i, j) = static_cast<unsigned char>(val);
-       
-
-    }
-  }
-
-    // Free memory!!!
-  stbi_image_free(image_data);
-
-  // Save the image using stb_image_write
-  const std::string output_image_path1 = "dark_image.png";
-  if (stbi_write_png(output_image_path1.c_str(), width, height, 1,
-                     dark_image.data(), width) == 0) {
-    std::cerr << "Error: Could not save grayscale image" << std::endl;
-  }
-  
-// Mappa i dati della matrice come un vettore colonna di dimensione (height * width)
-Eigen::Map<const Eigen::Matrix<unsigned char, Dynamic, 1>> w_vec(dark_image.data(), height * width);
-
-//PUNTO5 Apply the previous smoothing filter to the noisy image by performing the matrix vector
-//multiplication A1w. Export and upload the resulting image.
-
-Eigen::VectorXd w_double = w_vec.cast<double>();
-
-// 3. Esegui la moltiplicazione matrice-vettore: A1 * w
-Eigen::VectorXd g_double = A1 * w_double;
-
-// 4. Converti il risultato in unsigned char per salvarlo come immagine
-Eigen::Matrix<unsigned char, Dynamic, 1> g_char = g_double.cast<unsigned char>();
-
-// 
-//Eigen::Map<const Eigen::Matrix<unsigned char, Dynamic, 1>> g_vec(g_char.data(), height * width);
-// 5. Salva il risultato come immagine
-const std::string output_image_path2 = "dark_image_first_filter.png";
-  if (stbi_write_png(output_image_path2.c_str(), width, height, 1,
-                     g_char.data(), width) == 0) {
-    std::cerr << "Error: Could not save first filter image" << std::endl;
-  }
-
-// Calcola la norma convertendo in double
-std::cout << "Norma del vettore w: \n" << w_vec.cast<double>().norm() << std::endl;
-
-
-// PUNTO 6 Write the convolution operation corresponding to the sharpening kernel Hsh1 as a matrix
-//vector multiplication by a matrix A2 having size mn x mn. Report the number of non-zero
-//entries in A2. Is A2 symmetric?
-
-
-// 2. Inizializza la matrice sparsa di tipo double
 Eigen::SparseMatrix<double> A2(N, N);
 
 // 3. Usa un vettore di Triplet per riempirla velocemente
 std::vector<Eigen::Triplet<double>> A2_triplets;
-// Pre-allochiamo la memoria: al massimo 9 elementi non nulli per ogni riga
+// Pre-allochiamo la memoria: al massimo 5 elementi non nulli per ogni riga
 A2_triplets.reserve(N * 5);
 
 // 4. Doppio ciclo sulle coordinate 2D dell'immagine
 for (int y = 0; y < height; ++y) {
     for (int x = 0; x < width; ++x) {
         
-        // Indice 1D della riga della matrice A1
+        // Indice 1D della riga della matrice A2
         int row_idx = y * width + x;
         
         // Cicliamo sul kernel 3x3 (offset da -1 a +1 per y e x)
@@ -250,6 +132,12 @@ Eigen::VectorXd v_sharp = v_original.cast<double>();
 
 // 3. Esegui la moltiplicazione matrice-vettore: A1 * w
 Eigen::VectorXd g_sharp = A2 * v_sharp;
+// Limita simultaneamente tutti i valori del vettore g_sharp tra 0.0 e 255.0
+//g_sharp = g_sharp.cwiseMin(255.0).cwiseMax(0.0);
+
+g_sharp=g_sharp.unaryExpr([](double val) {
+    return std::clamp(val, 0.0, 255.0);
+  });
 
 // 4. Converti il risultato in unsigned char per salvarlo come immagine
 Eigen::Matrix<unsigned char, Dynamic, 1> g_sharp_char = g_sharp.cast<unsigned char>();
@@ -261,6 +149,133 @@ const std::string output_image_path3 = "original_image_sharp_filter.png";
                      g_sharp_char.data(), width) == 0) {
     std::cerr << "Error: Could not save sharpering image" << std::endl;
   }
+
+
+
+// Preapariamo la vera matrice dark_image con rumore
+ for (int i=0; i < height; ++i) {
+    for (int j = 0; j < width; ++j) {
+
+        double noise = 50.0 * Eigen::internal::random<double>(-1.0, 1.0);
+        
+        // 1. Estrapola il valore originale del pixel in double e aggiungi il rumore
+        double val = static_cast<double>(dark_image(i, j)) + noise;
+
+        // 2. Applica il clamp lavorando sui double (evita errori di tipi misti)
+        val = std::clamp(val, 0.0, 255.0);
+
+        // 3. Salva nella matrice solo dopo aver sistemato il range
+        dark_image(i, j) = static_cast<unsigned char>(val);
+       
+
+    }
+  }
+
+    // Free memory!!!
+  stbi_image_free(image_data);
+
+  // Save the image using stb_image_write
+  const std::string output_image_path1 = "dark_image.png";
+  if (stbi_write_png(output_image_path1.c_str(), width, height, 1,
+                     dark_image.data(), width) == 0) {
+    std::cerr << "Error: Could not save grayscale image" << std::endl;
+  }
+  
+// Mappa i dati della matrice come un vettore colonna di dimensione (height * width)
+Eigen::Map<const Eigen::Matrix<unsigned char, Dynamic, 1>> w_vec(dark_image.data(), height * width);
+
+//PUNTO5 Apply the previous smoothing filter to the noisy image by performing the matrix vector
+//multiplication A1w. Export and upload the resulting image.
+
+
+// PUNTO 6 Write the convolution operation corresponding to the sharpening kernel Hsh1 as a matrix
+//vector multiplication by a matrix A2 having size mn x mn. Report the number of non-zero
+//entries in A2. Is A2 symmetric?
+
+
+// 2. Inizializza la matrice sparsa di tipo double
+Eigen::SparseMatrix<double> A1(N, N);
+
+// 3. Usa un vettore di Triplet per riempirla velocemente
+std::vector<Eigen::Triplet<double>> triplets;
+// Pre-allochiamo la memoria: al massimo 9 elementi non nulli per ogni riga
+triplets.reserve(N * 9);
+
+// 4. Doppio ciclo sulle coordinate 2D dell'immagine
+for (int y = 0; y < height; ++y) {
+    for (int x = 0; x < width; ++x) {
+        
+        // Indice 1D della riga della matrice A1
+        int row_idx = y * width + x;
+        
+        // Cicliamo sul kernel 3x3 (offset da -1 a +1 per y e x)
+        for (int ky = -1; ky <= 1; ++ky) {
+            for (int kx = -1; kx <= 1; ++kx) {
+                
+                int neighbor_y = y + ky;
+                int neighbor_x = x + kx;
+                
+                // CONTROLLO DEI BORDI: verifichiamo che il vicino esista
+                if (neighbor_y >= 0 && neighbor_y < height && 
+                    neighbor_x >= 0 && neighbor_x < width) {
+                    
+                    // Indice 1D della colonna (il pixel da cui leggiamo il colore)
+                    int col_idx = neighbor_y * width + neighbor_x;
+                    
+                    // Assegniamo il peso corretto
+                    double weight = 0.0;
+                    if (ky == 0 && kx == 0) {
+                        weight = 4.0 / 12.0; // Centro
+                    } else {
+                        weight = 1.0 / 12.0; // Vicini
+                    }
+                    
+                    // Salviamo il valore
+                    triplets.push_back(Eigen::Triplet<double>(row_idx, col_idx, weight));
+                }
+            }
+        }
+    }
+}
+
+// 5. Costruisci la matrice sparsa dai Triplet
+A1.setFromTriplets(triplets.begin(), triplets.end());
+
+
+// Calcola la norma convertendo in double
+std::cout << "Norma del vettore senza rumore v: \n" << v_original.cast<double>().norm() << std::endl;
+
+// Adesso puoi stampare il numero di elementi non nulli richiesto dalla consegna
+std::cout << "Elementi non nulli in A1: " << A1.nonZeros() << std::endl;
+
+
+
+
+Eigen::VectorXd w_double = w_vec.cast<double>();
+
+// 3. Esegui la moltiplicazione matrice-vettore: A1 * w
+Eigen::VectorXd g_double = A1 * w_double;
+
+// 4. Converti il risultato in unsigned char per salvarlo come immagine
+Eigen::Matrix<unsigned char, Dynamic, 1> g_char = g_double.cast<unsigned char>();
+
+// 
+//Eigen::Map<const Eigen::Matrix<unsigned char, Dynamic, 1>> g_vec(g_char.data(), height * width);
+// 5. Salva il risultato come immagine
+const std::string output_image_path2 = "dark_image_first_filter.png";
+  if (stbi_write_png(output_image_path2.c_str(), width, height, 1,
+                     g_char.data(), width) == 0) {
+    std::cerr << "Error: Could not save first filter image" << std::endl;
+  }
+
+// Calcola la norma convertendo in double
+std::cout << "Norma del vettore w: \n" << w_vec.cast<double>().norm() << std::endl;
+
+
+
+
+
+
 
 return 0;
 
