@@ -128,6 +128,8 @@ std::cout << "Elementi non nulli in A2: " << A2.nonZeros() << std::endl << "La m
 //Punto 7 Apply the previous sharpening filter to the original image by performing the matrix vector
 //multiplication A2v. Export and upload the resulting image.
 
+//norma vettore originale
+std::cout << "Norma del vettore senza rumore v: \n" << v_original.cast<double>().norm() << std::endl;
 
 Eigen::VectorXd v_sharp = v_original.cast<double>();
 
@@ -244,7 +246,7 @@ A1.setFromTriplets(triplets.begin(), triplets.end());
 
 
 // Calcola la norma convertendo in double
-std::cout << "Norma del vettore senza rumore v: \n" << v_original.cast<double>().norm() << std::endl;
+//std::cout << "Norma del vettore senza rumore v: \n" << v_original.cast<double>().norm() << std::endl;
 
 // Adesso puoi stampare il numero di elementi non nulli richiesto dalla consegna
 std::cout << "Elementi non nulli in A1: " << A1.nonZeros() << std::endl;
@@ -279,7 +281,19 @@ Eigen::saveMarket(A2, "sharp_matrix.mtx");
 
 // Salva il vettore convertendolo in int, così scriverà i numeri reali (es. "128") 
 // anziché i caratteri ASCII corrispondenti
-Eigen::saveMarketVector(w_vec.cast<double>(), "w_noisy.mtx");
+//Eigen::saveMarketVector(w_vec.cast<double>(), "w_noisy.mtx");
+
+int n = w_vec.size();
+    // Eigen::saveMarketVector(b, "./rhs.mtx");
+    //Eigen::VectorXd w_vec2 = w_vec.cast<double>();
+    FILE* out = fopen("w_noisy.mtx","w");
+    fprintf(out,"%%%%MatrixMarket vector coordinate real general\n");
+    fprintf(out,"%d\n", n);
+    for (int i=0; i<n; ++i) {
+        fprintf(out,"%d %f\n", i+1 ,w_vec.cast<double>()(i));
+    }
+    fclose(out);
+
 
 
 
