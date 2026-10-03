@@ -279,7 +279,7 @@ Eigen::saveMarket(A2, "sharp_matrix.mtx");
 
 // Salva il vettore convertendolo in int, così scriverà i numeri reali (es. "128") 
 // anziché i caratteri ASCII corrispondenti
-Eigen::saveMarketVector(w_vec.cast<int>(), "w_noisy.mtx");
+Eigen::saveMarketVector(w_vec.cast<double>(), "w_noisy.mtx");
 
 
 
