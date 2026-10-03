@@ -329,18 +329,17 @@ int n = w_vec.size();
 
     // adesso facciamo .png
 
-    const std::string output_image_path4 = "image_after_Lis.png";
-  if (stbi_write_png(output_image_path4.c_str(), width, height, 1,
-                     Lis_vec.data(), width) == 0) {
+    // 4. Applica il clamp per limitare i valori e converti in unsigned char
+Eigen::Matrix<unsigned char, Dynamic, 1> Lis_vec_char = Lis_vec.unaryExpr([](double val) {
+    return static_cast<unsigned char>(std::clamp(val, 0.0, 255.0));
+});
+
+// 5. Salva l'immagine passando il vettore convertito (Lis_vec_char)
+const std::string output_image_path4 = "image_after_Lis.png";
+if (stbi_write_png(output_image_path4.c_str(), width, height, 1,
+                   Lis_vec_char.data(), width) == 0) {
     std::cerr << "Error: Could not save grayscale image" << std::endl;
-  }
-
-
-
-
-
-
-
+}
 
 
 return 0;
