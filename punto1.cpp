@@ -290,9 +290,51 @@ int n = w_vec.size();
     fprintf(out,"%%%%MatrixMarket vector coordinate real general\n");
     fprintf(out,"%d\n", n);
     for (int i=0; i<n; ++i) {
-        fprintf(out,"%d %f\n", i+1 ,w_vec.cast<double>()(i));
+        fprintf(out,"%d %f\n", i+1 ,static_cast<double>(w_vec(i))); // per risparmiare memoria
     }
     fclose(out);
+
+    // Punto9 Convert the previous approximate solution vector x into a .png image. Upload the resulting
+     //file here.
+
+     std::ifstream file("sol.txt");
+    
+
+    std::string line;
+    // 1. Salta i banner e i commenti che iniziano con '%'
+    while (std::getline(file, line)) {
+        if (!line.empty() && line[0] != '%') {
+            break;
+        }
+    }
+
+    // 2. Legge la dimensione N (es. 430336)
+    int dim = 0;
+    std::stringstream ss(line);
+    ss >> dim;
+
+    Eigen::VectorXd Lis_vec(dim);
+
+    // 3. Legge ogni riga composta da: indice_1_based e valore
+    int idx;
+    double val;
+    while (file >> idx >> val) {
+        // Conversione da 1-based (Matrix Market) a 0-based (C++/Eigen)
+        if (idx >= 1 && idx <= dim) {
+            Lis_vec(idx - 1) = val;
+        }
+    }
+
+    file.close();
+
+    // adesso facciamo .png
+
+    const std::string output_image_path4 = "image_after_Lis.png";
+  if (stbi_write_png(output_image_path4.c_str(), width, height, 1,
+                     Lis_vec.data(), width) == 0) {
+    std::cerr << "Error: Could not save grayscale image" << std::endl;
+  }
+
 
 
 
