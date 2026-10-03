@@ -445,11 +445,28 @@ A3 = 4.0 * I + A3;
     Eigen::VectorXd y = bicg.solve(w_double);
     std::cout << " Eigen native BiCGSTAB" << std::endl;
     std::cout << "#iterations:     " << bicg.iterations() << std::endl;
-    std::cout << "relative residual: " << bicg.error()      << std::endl;
+    std::cout << "relative residual: " << bicg.error()<< std::endl;
+    std::cout << "absolute residual: " << bicg.error()*w_double.norm() << std::endl;
+
+
+    //punto11 "Import the previous approximate solution vector y in Eigen and convert it into a .png
+    //image and upload it."
+
     
+y=y.unaryExpr([](double val) {
+    return std::clamp(val, 0.0, 255.0);
+  });
 
+// 4. Converti il risultato in unsigned char per salvarlo come immagine
+Eigen::Matrix<unsigned char, Dynamic, 1> y_char = y.cast<unsigned char>();
 
-
+// 
+// 5. Salva il risultato come immagine
+const std::string output_image_path6 = "final_image.png";
+  if (stbi_write_png(output_image_path6.c_str(), width, height, 1,
+                     y_char.data(), width) == 0) {
+    std::cerr << "Error: Could not save final image" << std::endl;
+  }
 
 return 0;
 
