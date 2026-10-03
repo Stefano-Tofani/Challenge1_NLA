@@ -153,8 +153,93 @@ const std::string output_image_path3 = "original_image_sharp_filter.png";
     std::cerr << "Error: Could not save sharpering image" << std::endl;
   }
 
+  //PUNTO 10  "Write the convolution operation corresponding to the detection kernel Hed2 as a matrix
+//vector multiplication by a matrix A3 having size mn × mn. Is matrix A3 symmetric?"
+
+Eigen::SparseMatrix<double> A3(N, N);
+
+// 3. Usa un vettore di Triplet per riempirla velocemente
+std::vector<Eigen::Triplet<double>> A3_triplets;
+// Pre-allochiamo la memoria: al massimo 5 elementi non nulli per ogni riga
+A3_triplets.reserve(N * 6);
+
+// 4. Doppio ciclo sulle coordinate 2D dell'immagine
+for (int y = 0; y < height; ++y) {
+    for (int x = 0; x < width; ++x) {
+        
+        // Indice 1D della riga della matrice A3
+        int row_idx = y * width + x;
+        
+        // Cicliamo sul kernel 3x3 (offset da -1 a +1 per y e x)
+        for (int ky = -1; ky <= 1; ++ky) {
+            for (int kx = -1; kx <= 1; ++kx) {
+                
+                int neighbor_y = y + ky;
+                int neighbor_x = x + kx;
+                
+                // CONTROLLO DEI BORDI: verifichiamo che il vicino esista
+                if (neighbor_y >= 0 && neighbor_y < height && 
+                    neighbor_x >= 0 && neighbor_x < width) {
+                    
+                    // Indice 1D della colonna (il pixel da cui leggiamo il colore)
+                    int col_idx = neighbor_y * width + neighbor_x;
+                    
+                    // Assegniamo il peso corretto
+                    double weight = 0.0;
+                    if (kx==-1 && ky==0) {
+                        weight = -2.0; // sinistra centro
+                    } 
+                    if ((kx==0)){
+                        continue; //tutto il centro
+                    }
+                    if ( kx==-1 && ky!=0) {
+                        weight = -1.0; //sinistra alto basso
+                    }
+                    if (kx==1 && ky!=0) {
+                        weight = 1.0; //destra alto basso
+                    }
+                    if (kx==1 && ky==0) {
+                        weight = 2.0; //destra centro 
+                    }
+                    // Salviamo il valore
+                    A3_triplets.push_back(Eigen::Triplet<double>(row_idx, col_idx, weight));
+                }
+            }
+        }
+    }
+}
 
 
+// 5. Costruisci la matrice sparsa dai Triplet
+A3.setFromTriplets(A3_triplets.begin(), A3_triplets.end());
+
+bool is_symmetric3 = A3.isApprox(A3.transpose());
+
+std::cout << "Elementi non nulli in A3: " << A3.nonZeros() << std::endl << "La matrice e simmetrica? " << is_symmetric3 << std::endl;
+
+
+// 3. Esegui la moltiplicazione matrice-vettore: A1 * w
+Eigen::VectorXd v_edge = v_original.cast<double>();
+
+Eigen::VectorXd g_edge = A3 * v_edge;
+
+
+g_edge=g_edge.unaryExpr([](double val) {
+    return std::clamp(val, 0.0, 255.0);
+  });
+
+// 4. Converti il risultato in unsigned char per salvarlo come immagine
+Eigen::Matrix<unsigned char, Dynamic, 1> g_edge_char = g_edge.cast<unsigned char>();
+
+// 
+// 5. Salva il risultato come immagine
+const std::string output_image_path5 = "original_image_edge_detection.png";
+  if (stbi_write_png(output_image_path5.c_str(), width, height, 1,
+                     g_edge_char.data(), width) == 0) {
+    std::cerr << "Error: Could not save edge detection image" << std::endl;
+  }
+
+//Qua si fanno le cose con il rumore!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 // Preapariamo la vera matrice dark_image con rumore
  for (int i=0; i < height; ++i) {
     for (int j = 0; j < width; ++j) {
@@ -247,9 +332,9 @@ A1.setFromTriplets(triplets.begin(), triplets.end());
 
 // Calcola la norma convertendo in double
 //std::cout << "Norma del vettore senza rumore v: \n" << v_original.cast<double>().norm() << std::endl;
-
+bool is_symmetric1 = A1.isApprox(A1.transpose());
 // Adesso puoi stampare il numero di elementi non nulli richiesto dalla consegna
-std::cout << "Elementi non nulli in A1: " << A1.nonZeros() << std::endl;
+std::cout << "Elementi non nulli in A1: " << A1.nonZeros() <<"      " << "La matrice e simmetrica? " << is_symmetric1 << std::endl;
 
 
 
@@ -341,6 +426,8 @@ if (stbi_write_png(output_image_path4.c_str(), width, height, 1,
     std::cerr << "Error: Could not save grayscale image" << std::endl;
 }
 
+//PUNTO 10  "Write the convolution operation corresponding to the detection kernel Hed2 as a matrix
+//vector multiplication by a matrix A3 having size mn × mn. Is matrix A3 symmetric?"
 
 return 0;
 
