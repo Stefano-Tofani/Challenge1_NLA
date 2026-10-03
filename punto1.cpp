@@ -426,8 +426,30 @@ if (stbi_write_png(output_image_path4.c_str(), width, height, 1,
     std::cerr << "Error: Could not save grayscale image" << std::endl;
 }
 
-//PUNTO 10  "Write the convolution operation corresponding to the detection kernel Hed2 as a matrix
-//vector multiplication by a matrix A3 having size mn × mn. Is matrix A3 symmetric?"
+//PUNTO 11 "Using a suitable iterative solver available in the Eigen library compute the approximate solution of the linear system (4I+A3)y = w, where I denotes the identity matrix, prescribing
+//a tolerance of 10−10. Report here the iteration count and the final residual."
+
+Eigen::SparseMatrix<double> I(N, N);
+I.setIdentity();
+
+A3 = 4.0 * I + A3;
+
+// Set parameters for solver
+    double tol = 1.e-10;                 // Convergence tolerance
+    int result, maxit = 1000;           // Maximum iterations
+
+    Eigen::BiCGSTAB<Eigen::SparseMatrix<double>> bicg;
+    bicg.setMaxIterations(maxit);
+    bicg.setTolerance(tol);
+    bicg.compute(A3);
+    Eigen::VectorXd y = bicg.solve(w_double);
+    std::cout << " Eigen native BiCGSTAB" << std::endl;
+    std::cout << "#iterations:     " << bicg.iterations() << std::endl;
+    std::cout << "relative residual: " << bicg.error()      << std::endl;
+    
+
+
+
 
 return 0;
 
